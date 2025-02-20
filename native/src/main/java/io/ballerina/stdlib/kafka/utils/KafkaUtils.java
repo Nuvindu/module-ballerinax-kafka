@@ -124,9 +124,6 @@ public class KafkaUtils {
                                 KafkaConstants.CONSUMER_INTERCEPTOR_CLASSES_CONFIG);
         addStringParamIfPresent(ConsumerConfig.ISOLATION_LEVEL_CONFIG, configurations, properties,
                                 KafkaConstants.CONSUMER_ISOLATION_LEVEL_CONFIG);
-
-        addDeserializerConfigs(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, properties);
-        addDeserializerConfigs(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, properties);
         addStringParamIfPresent(KafkaConstants.SCHEMA_REGISTRY_URL, configurations, properties,
                                 KafkaConstants.CONSUMER_SCHEMA_REGISTRY_URL);
 
@@ -227,9 +224,6 @@ public class KafkaUtils {
                                 properties, KafkaConstants.PRODUCER_TRANSACTIONAL_ID_CONFIG);
         addStringParamIfPresent(KafkaConstants.SCHEMA_REGISTRY_URL, configurations, properties,
                                 KafkaConstants.PRODUCER_SCHEMA_REGISTRY_URL);
-
-        addSerializerTypeConfigs(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, properties);
-        addSerializerTypeConfigs(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, properties);
         addIntParamIfPresent(ProducerConfig.BUFFER_MEMORY_CONFIG, configurations,
                              properties, KafkaConstants.PRODUCER_BUFFER_MEMORY_CONFIG);
         addIntParamIfPresent(ProducerConfig.RETRIES_CONFIG, configurations,
@@ -391,14 +385,6 @@ public class KafkaUtils {
         for (Object key : propertiesMap.getKeys()) {
             kafkaProperties.setProperty(key.toString(), propertiesMap.getStringValue((BString) key).getValue());
         }
-    }
-
-    private static void addSerializerTypeConfigs(String paramName, Properties configParams) {
-        configParams.put(paramName, KafkaConstants.BYTE_ARRAY_SERIALIZER);
-    }
-
-    private static void addDeserializerConfigs(String paramName, Properties configParams) {
-            configParams.put(paramName, KafkaConstants.BYTE_ARRAY_DESERIALIZER);
     }
 
     private static void addStringParamIfPresent(String paramName,

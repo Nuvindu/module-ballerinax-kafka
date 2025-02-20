@@ -19,15 +19,19 @@
 package io.ballerina.stdlib.kafka.nativeimpl.consumer;
 
 import io.ballerina.runtime.api.Environment;
+import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.values.BArray;
 import io.ballerina.runtime.api.values.BDecimal;
+import io.ballerina.runtime.api.values.BError;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 import io.ballerina.stdlib.kafka.observability.KafkaMetricsUtil;
 import io.ballerina.stdlib.kafka.observability.KafkaObservabilityConstants;
 import io.ballerina.stdlib.kafka.observability.KafkaTracingUtil;
+import io.ballerina.stdlib.kafka.serializer.KafkaAvroDeserializer;
 import io.ballerina.stdlib.kafka.utils.KafkaConstants;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
@@ -114,6 +118,14 @@ public class BrokerConnection {
         Object bootStrapServers = consumerObject.get(CONSUMER_BOOTSTRAP_SERVERS_CONFIG);
         BMap<BString, Object> configs = consumerObject.getMapValue(CONSUMER_CONFIG_FIELD_NAME);
         Properties consumerProperties = processKafkaConsumerConfig(bootStrapServers, configs);
+        BError keyDeserialization = addKeyDeserializerConfig(consumerProperties, configs);
+        BError valueDeserialization = addValueDeserializerConfig(consumerProperties, configs);
+        if (keyDeserialization != null) {
+            return keyDeserialization;
+        }
+        if (valueDeserialization != null) {
+            return valueDeserialization;
+        }
         try {
             KafkaConsumer kafkaConsumer = new KafkaConsumer<>(consumerProperties);
             consumerObject.addNativeData(NATIVE_CONSUMER, kafkaConsumer);
@@ -127,6 +139,46 @@ public class BrokerConnection {
         }
         if (logger.isDebugEnabled()) {
             logger.debug(KAFKA_SERVERS + getServerUrls(bootStrapServers));
+        }
+        return null;
+    }
+
+    public static BError addKeyDeserializerConfig(Properties properties, BMap<BString, Object> configs) {
+        if (configs.get(KafkaConstants.KEY_DESERIALIZER_TYPE)
+                .equals(StringUtils.fromString(KafkaConstants.AVRO_DESERIALIZER))) {
+            if (!configs.containsKey(KafkaConstants.PRODUCER_SCHEMA_REGISTRY_URL)) {
+                return createKafkaError("Schema Registry is required for Avro deserialization");
+            }
+            BString schemaRegistryUrl = (BString) configs.get(KafkaConstants.CONSUMER_SCHEMA_REGISTRY_URL);
+            KafkaAvroDeserializer deserializer;
+            try {
+                deserializer = new KafkaAvroDeserializer(schemaRegistryUrl);
+            } catch (BError e) {
+                return createKafkaError(e.getMessage());
+            }
+            properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, deserializer);
+        } else {
+            properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, KafkaConstants.BYTE_ARRAY_DESERIALIZER);
+        }
+        return null;
+    }
+
+    public static BError addValueDeserializerConfig(Properties properties, BMap<BString, Object> configs) {
+        if (configs.get(KafkaConstants.VALUE_DESERIALIZER_TYPE)
+                .equals(StringUtils.fromString(KafkaConstants.AVRO_DESERIALIZER))) {
+            if (!configs.containsKey(KafkaConstants.PRODUCER_SCHEMA_REGISTRY_URL)) {
+                return createKafkaError("Schema Registry is required for Avro deserialization");
+            }
+            BString schemaRegistryUrl = (BString) configs.get(KafkaConstants.CONSUMER_SCHEMA_REGISTRY_URL);
+            KafkaAvroDeserializer deserializer;
+            try {
+                deserializer = new KafkaAvroDeserializer(schemaRegistryUrl);
+            } catch (BError e) {
+                return createKafkaError(e.getMessage());
+            }
+            properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer);
+        } else {
+            properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaConstants.BYTE_ARRAY_DESERIALIZER);
         }
         return null;
     }

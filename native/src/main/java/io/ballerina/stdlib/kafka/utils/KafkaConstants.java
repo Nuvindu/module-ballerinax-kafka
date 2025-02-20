@@ -85,6 +85,7 @@ public class KafkaConstants {
     public static final String ALIAS_DURATION = "duration";
 
     // Consumer Configuration.
+    public static final BString CONSUMER_AVRO_SCHEMA = StringUtils.fromString("avroSchema");
     public static final BString CONSUMER_BOOTSTRAP_SERVERS_CONFIG = StringUtils.fromString("bootstrapServers");
     public static final BString CONSUMER_GROUP_ID_CONFIG = StringUtils.fromString("groupId");
     public static final BString CONSUMER_AUTO_OFFSET_RESET_CONFIG = StringUtils.fromString("offsetReset");
@@ -148,6 +149,11 @@ public class KafkaConstants {
     public static final BString PRODUCER_INTERCEPTOR_CLASSES_CONFIG = StringUtils.fromString("interceptorClasses");
     public static final BString PRODUCER_TRANSACTIONAL_ID_CONFIG = StringUtils.fromString("transactionalId");
     public static final BString PRODUCER_SCHEMA_REGISTRY_URL = StringUtils.fromString("schemaRegistryUrl");
+    public static final BString PRODUCER_AVRO_SCHEMA = StringUtils.fromString("avroSchema");
+    public static final BString KEY_SERIALIZER_TYPE = StringUtils.fromString("keySerializerType");
+    public static final BString KEY_DESERIALIZER_TYPE = StringUtils.fromString("keyDeserializerType");
+    public static final BString VALUE_SERIALIZER_TYPE = StringUtils.fromString("valueSerializerType");
+    public static final BString VALUE_DESERIALIZER_TYPE = StringUtils.fromString("valueDeserializerType");
     public static final BString PRODUCER_BUFFER_MEMORY_CONFIG = StringUtils.fromString("bufferMemory");
     public static final BString PRODUCER_RETRIES_CONFIG = StringUtils.fromString("retryCount");
     public static final BString PRODUCER_BATCH_SIZE_CONFIG = StringUtils.fromString("batchSize");
@@ -209,9 +215,11 @@ public class KafkaConstants {
     // Default class names
     // Serializers
     public static final String BYTE_ARRAY_SERIALIZER = "org.apache.kafka.common.serialization.ByteArraySerializer";
+    public static final String AVRO_SERIALIZER = "io.confluent.kafka.serializers.KafkaAvroSerializer";
 
     // Deserializers
     public static final String BYTE_ARRAY_DESERIALIZER = "org.apache.kafka.common.serialization.ByteArrayDeserializer";
+    public static final String AVRO_DESERIALIZER = "io.confluent.kafka.serializers.KafkaAvroDeserializer";
 
     // Warning suppression
     public static final String UNCHECKED = "unchecked";

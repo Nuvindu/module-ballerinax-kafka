@@ -21,7 +21,9 @@ package io.ballerina.stdlib.kafka.nativeimpl.producer;
 import io.ballerina.runtime.api.Environment;
 import io.ballerina.runtime.api.creators.TypeCreator;
 import io.ballerina.runtime.api.creators.ValueCreator;
+import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.values.BArray;
+import io.ballerina.runtime.api.values.BError;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
@@ -30,6 +32,8 @@ import io.ballerina.stdlib.kafka.impl.KafkaTransactionContext;
 import io.ballerina.stdlib.kafka.observability.KafkaMetricsUtil;
 import io.ballerina.stdlib.kafka.observability.KafkaObservabilityConstants;
 import io.ballerina.stdlib.kafka.observability.KafkaTracingUtil;
+import io.ballerina.stdlib.kafka.serializer.KafkaAvroSerializer;
+import io.ballerina.stdlib.kafka.utils.KafkaConstants;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.KafkaException;
@@ -66,6 +70,14 @@ public class ProducerActions {
         Object bootstrapServer = producerObject.get(PRODUCER_BOOTSTRAP_SERVERS_CONFIG);
         BMap<BString, Object> configs = producerObject.getMapValue(PRODUCER_CONFIG_FIELD_NAME);
         Properties producerProperties = processKafkaProducerConfig(bootstrapServer, configs);
+        BError keySerialization = addKeySerializerConfig(producerProperties, configs);
+        BError valueSerialization = addValueSerializerConfig(producerProperties, configs);
+        if (keySerialization != null) {
+            return keySerialization;
+        }
+        if (valueSerialization != null) {
+            return valueSerialization;
+        }
         try {
             if (Objects.nonNull(producerProperties.get(ProducerConfig.TRANSACTIONAL_ID_CONFIG))) {
                 if (!((boolean) producerProperties.get(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG))) {
@@ -82,6 +94,54 @@ public class ProducerActions {
             KafkaMetricsUtil.reportProducerError(producerObject,
                                                  KafkaObservabilityConstants.ERROR_TYPE_CONNECTION);
             return createKafkaError("Failed to initialize the producer: " + e.getCause().getMessage());
+        }
+        return null;
+    }
+
+    public static BError addKeySerializerConfig(Properties properties, BMap<BString, Object> configs) {
+        if (configs.get(KafkaConstants.KEY_SERIALIZER_TYPE)
+                .equals(StringUtils.fromString(KafkaConstants.AVRO_SERIALIZER))) {
+            if (!configs.containsKey(KafkaConstants.PRODUCER_SCHEMA_REGISTRY_URL)) {
+                return createKafkaError("Schema Registry is required for Avro serialization");
+            }
+            if (!configs.containsKey(KafkaConstants.PRODUCER_AVRO_SCHEMA)) {
+                return createKafkaError("Schema is required for Avro serialization");
+            }
+            BString schemaRegistryUrl = (BString) configs.get(KafkaConstants.PRODUCER_SCHEMA_REGISTRY_URL);
+            BString avroSchema = (BString) configs.get(KafkaConstants.PRODUCER_AVRO_SCHEMA);
+            KafkaAvroSerializer serializer;
+            try {
+                serializer = new KafkaAvroSerializer(schemaRegistryUrl, avroSchema);
+            } catch (BError e) {
+                return createKafkaError(e.getMessage());
+            }
+            properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, serializer);
+        } else {
+            properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, KafkaConstants.BYTE_ARRAY_SERIALIZER);
+        }
+        return null;
+    }
+
+    public static BError addValueSerializerConfig(Properties properties, BMap<BString, Object> configs) {
+        if (configs.get(KafkaConstants.VALUE_SERIALIZER_TYPE)
+                .equals(StringUtils.fromString(KafkaConstants.AVRO_SERIALIZER))) {
+            if (!configs.containsKey(KafkaConstants.PRODUCER_SCHEMA_REGISTRY_URL)) {
+                return createKafkaError("Schema Registry is required for Avro serialization");
+            }
+            if (!configs.containsKey(KafkaConstants.CONSUMER_AVRO_SCHEMA)) {
+                return createKafkaError("Schema is required for Avro serialization");
+            }
+            BString schemaRegistryUrl = (BString) configs.get(KafkaConstants.CONSUMER_SCHEMA_REGISTRY_URL);
+            BString avroSchema = (BString) configs.get(KafkaConstants.CONSUMER_AVRO_SCHEMA);
+            KafkaAvroSerializer serializer;
+            try {
+                serializer = new KafkaAvroSerializer(schemaRegistryUrl, avroSchema);
+            } catch (BError e) {
+                return createKafkaError(e.getMessage());
+            }
+            properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, serializer);
+        } else {
+            properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaConstants.BYTE_ARRAY_SERIALIZER);
         }
         return null;
     }

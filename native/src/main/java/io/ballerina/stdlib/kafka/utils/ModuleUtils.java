@@ -46,12 +46,20 @@ public class ModuleUtils {
      * Kafka standard library package ID.
      */
     private static Module kafkaModule = null;
+    private static Environment environment = null;
 
     private ModuleUtils() {
     }
 
+    public static Environment getEnvironment() {
+        return environment;
+    }
+
     public static void setModule(Environment env) {
-        kafkaModule = env.getCurrentModule();
+        if (environment == null) {
+            environment = env;
+            kafkaModule = env.getCurrentModule();
+        }
     }
 
     public static Module getModule() {

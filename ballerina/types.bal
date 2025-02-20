@@ -14,6 +14,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import ballerinax/confluent.cregistry;
+import ballerinax/confluent.cavroserdes;
+
 // Consumer-related types
 # Represents the different types of offset-reset methods of the Kafka consumer.
 public type OffsetResetMethod OFFSET_RESET_EARLIEST|OFFSET_RESET_LATEST|OFFSET_RESET_NONE;
@@ -50,3 +53,56 @@ public enum DeserializerType {
     DES_AVRO
 }
 
+public type Serializer object {
+    public function configure(string schemaRegistryUrl) returns error?;
+    public function serialize(string topic, anydata value) returns byte[]|error;
+};
+
+class KafkaAvroSerializer {
+    *Serializer;
+    cregistry:Client registry;
+    string schema;
+
+    public function init(string schemaRegistryUrl, string schema) returns error? {
+        self.registry = check new({
+            baseUrl: schemaRegistryUrl
+        });
+        self.schema = schema;
+    }
+
+    public function configure(string schemaRegistryUrl) returns error? {
+        self.registry = check new({
+            baseUrl: schemaRegistryUrl
+        });
+    }
+
+    public function serialize(string topic, anydata value) returns byte[]|error {
+        return check cavroserdes:serialize(self.registry, self.schema, value, "new-subject");
+    }
+};
+
+public type Deserializer object {
+    public function configure(string schemaRegistryUrl) returns error?;
+    public function deserialize(byte[] value) returns anydata|error;
+};
+
+class KafkaAvroDeserializer {
+    *Deserializer;
+    cregistry:Client registry;
+
+    public function init(string schemaRegistryUrl) returns error? {
+        self.registry = check new({
+            baseUrl: schemaRegistryUrl
+        });
+    }
+
+    public function configure(string schemaRegistryUrl) returns error? {
+        self.registry = check new({
+            baseUrl: schemaRegistryUrl
+        });
+    }
+
+    public function deserialize(byte[] value) returns anydata|error {
+        return check cavroserdes:deserialize(self.registry, value, anydata);
+    }
+};

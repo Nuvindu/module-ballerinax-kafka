@@ -70,6 +70,18 @@ public class SendByteArrayValues extends Send {
         return sendKafkaRecord(env, kafkaRecord, producer);
     }
 
+    public static Object sendAvroValuesWithAvroKeys(Environment env, BObject producer, BObject value,
+                                                    BString topic, BObject key, Object partition,
+                                                    Object timestamp, BArray headerList) {
+        Integer partitionValue = getIntValue(partition, ALIAS_PARTITION, logger);
+        Long timestampValue = getLongValue(timestamp);
+        List<Header> headers = getHeadersFromBHeaders(headerList);
+        ProducerRecord kafkaRecord = new ProducerRecord<>(topic.getValue(), partitionValue,
+                timestampValue, key, value, headers);
+        return sendKafkaRecord(env, kafkaRecord, producer);
+    }
+
+
     private static List<Header> getHeadersFromBHeaders(BArray headerList) {
         List<Header> headers = new ArrayList<>();
         for (int i = 0; i < headerList.size(); i++) {

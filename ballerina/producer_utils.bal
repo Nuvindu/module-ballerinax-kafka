@@ -41,3 +41,9 @@ isolated function sendByteArrayValuesByteArrayKeys(Producer producer, byte[] val
 @java:Method {
     'class: "io.ballerina.stdlib.kafka.nativeimpl.producer.SendByteArrayValues"
 } external;
+
+isolated function sendAvroValuesWithAvroKeys(Producer producer, anydata value, string topic, anydata key,
+    int? partition = (), int? timestamp = (), [string, byte[]][] headers = []) returns Error? =
+@java:Method {
+    'class: "io.ballerina.stdlib.kafka.nativeimpl.producer.SendByteArrayValues"
+} external;
