@@ -116,17 +116,12 @@ public client isolated class Producer {
         } else if anydataKey !is () {
             key = anydataKey.toJsonString().toBytes();
         }
-        if self.keySerializerType == SER_AVRO && self.valueSerializerType != SER_AVRO {
-            return sendAvroValuesWithAvroKeys(self, value, producerRecord.topic, anydataKey,
-        producerRecord?.partition, producerRecord?.timestamp, self.getHeaderValueAsByteArrayList(producerRecord?.headers));
-        }
-        if self.keySerializerType != SER_AVRO && self.valueSerializerType == SER_AVRO {
-            return sendAvroValuesWithAvroKeys(self, anydataValue, producerRecord.topic, key,
-        producerRecord?.partition, producerRecord?.timestamp, self.getHeaderValueAsByteArrayList(producerRecord?.headers));
-        }
-        if self.keySerializerType == SER_AVRO && self.valueSerializerType == SER_AVRO {
-            return sendAvroValuesWithAvroKeys(self, anydataValue, producerRecord.topic, anydataKey,
-        producerRecord?.partition, producerRecord?.timestamp, self.getHeaderValueAsByteArrayList(producerRecord?.headers));
+        boolean isKeyAvro = self.keySerializerType == SER_AVRO;
+        boolean isValueAvro = self.valueSerializerType == SER_AVRO;
+        if isKeyAvro || isValueAvro {
+            return sendAvroValuesWithAvroKeys(self, isValueAvro ? anydataValue : value, producerRecord.topic,
+                isKeyAvro ? anydataKey : key, producerRecord?.partition, producerRecord?.timestamp, 
+                self.getHeaderValueAsByteArrayList(producerRecord?.headers));
         }
         return sendByteArrayValues(self, value, producerRecord.topic, self.getHeaderValueAsByteArrayList(producerRecord?.headers), key,
         producerRecord?.partition, producerRecord?.timestamp, self.keySerializerType);

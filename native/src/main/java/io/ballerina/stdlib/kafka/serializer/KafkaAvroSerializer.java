@@ -27,8 +27,6 @@ import io.ballerina.runtime.api.values.BString;
 import io.ballerina.stdlib.kafka.utils.ModuleUtils;
 import org.apache.kafka.common.serialization.Serializer;
 
-import java.util.Map;
-
 public class KafkaAvroSerializer implements Serializer<Object> {
     BObject serializer = null;
     public KafkaAvroSerializer(BString schemaRegistryUrl, BString avroSchema) {
@@ -42,10 +40,6 @@ public class KafkaAvroSerializer implements Serializer<Object> {
 
     }
 
-    public void configure(Map<String, ?> configs) {
-
-    }
-
     public byte[] serialize(String topic, Object value) {
         if (this.serializer == null) {
             throw new RuntimeException("Serializer not found");
@@ -55,8 +49,5 @@ public class KafkaAvroSerializer implements Serializer<Object> {
         BArray result = (BArray) ModuleUtils.getEnvironment()
                 .getRuntime().callMethod(this.serializer, "serialize", null, arguments);
         return result.getByteArray();
-    }
-
-    public void close() {
     }
 }
