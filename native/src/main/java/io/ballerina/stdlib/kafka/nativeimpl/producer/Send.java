@@ -52,6 +52,7 @@ public class Send {
         KafkaTracingUtil.traceResourceInvocation(env, producerObject, record.topic());
         final CompletableFuture<Object> balFuture = new CompletableFuture<>();
         KafkaProducer producer = (KafkaProducer) producerObject.getNativeData(NATIVE_PRODUCER);
+        ModuleUtils.setEnvironment(env);
         if (TransactionResourceManager.getInstance().isInTransaction()) {
             handleTransactions(producerObject);
         }

@@ -55,6 +55,10 @@ public class ModuleUtils {
         return environment;
     }
 
+    public static void setEnvironment(Environment env) {
+        environment = env;
+    }
+
     public static void setModule(Environment env) {
         if (environment == null) {
             environment = env;

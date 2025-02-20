@@ -60,6 +60,7 @@ import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.serialization.Serializer;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -939,6 +940,17 @@ public class KafkaUtils {
         KafkaMetricsUtil.reportNewProducer(producerObject);
     }
 
+    public static void createKafkaProducer(Properties producerProperties, BObject producerObject,
+                                           Serializer keySerializer, Serializer valueSerializer) {
+        KafkaProducer kafkaProducer = new KafkaProducer<>(producerProperties, keySerializer, valueSerializer);
+        producerObject.addNativeData(KafkaConstants.NATIVE_PRODUCER, kafkaProducer);
+        producerObject.addNativeData(KafkaConstants.NATIVE_PRODUCER_CONFIG, producerProperties);
+        producerObject.addNativeData(KafkaConstants.BOOTSTRAP_SERVERS,
+                producerProperties.getProperty(KafkaConstants.BOOTSTRAP_SERVERS));
+        producerObject.addNativeData(KafkaConstants.CLIENT_ID, getClientIdFromProperties(producerProperties));
+        KafkaMetricsUtil.reportNewProducer(producerObject);
+    }
+
     public static String getTopicNamesString(List<String> topicsList) {
         return String.join(", ", topicsList);
     }
@@ -1016,6 +1028,7 @@ public class KafkaUtils {
 
     public static BArray getValuesWithIntendedType(Type type, KafkaConsumer consumer, ConsumerRecords records,
                                                    boolean constraintValidation, boolean autoCommit, boolean autoSeek) {
+
         ArrayType intendedType;
         if (type.getTag() == INTERSECTION_TAG) {
             intendedType = (ArrayType) ((IntersectionType) type).getConstituentTypes().get(0);
@@ -1028,13 +1041,17 @@ public class KafkaUtils {
         for (Object record: records) {
             ConsumerRecord consumerRecord = (ConsumerRecord) record;
             try {
-                Object value = getValueWithIntendedType(getReferredType(intendedType.getElementType()),
-                        (byte[]) (consumerRecord.value()), consumerRecord, autoSeek);
-                if (constraintValidation) {
-                    validateConstraints(value, ValueCreator.createTypedescValue(intendedType.getElementType()),
-                            consumerRecord, autoSeek);
+                if (!((consumerRecord.value() instanceof byte[]) || (consumerRecord.value() instanceof BArray))) {
+                    bArray.append(consumerRecord.value());
+                } else {
+                    Object value = getValueWithIntendedType(getReferredType(intendedType.getElementType()),
+                            (byte[]) (consumerRecord.value()), consumerRecord, autoSeek);
+                    if (constraintValidation) {
+                        validateConstraints(value, ValueCreator.createTypedescValue(intendedType.getElementType()),
+                                consumerRecord, autoSeek);
+                    }
+                    bArray.append(value);
                 }
-                bArray.append(value);
             } catch (BError bError) {
                 if (handleBError(consumer, (ConsumerRecord) record, autoSeek, bError, i == 0)) {
                     break;

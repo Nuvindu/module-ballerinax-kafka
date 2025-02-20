@@ -16,6 +16,7 @@
 
 import ballerina/uuid;
 import ballerina/jballerina.java;
+import ballerina/io;
 
 # Represents a Kafka producer endpoint.
 #
@@ -119,8 +120,11 @@ public client isolated class Producer {
         boolean isKeyAvro = self.keySerializerType == SER_AVRO;
         boolean isValueAvro = self.valueSerializerType == SER_AVRO;
         if isKeyAvro || isValueAvro {
-            return sendAvroValuesWithAvroKeys(self, isValueAvro ? anydataValue : value, producerRecord.topic,
-                isKeyAvro ? anydataKey : key, producerRecord?.partition, producerRecord?.timestamp, 
+            io:println("Key Serializer: ", self.keySerializerType);
+            io:println("Value Serializer: ", self.valueSerializerType);
+            io:println("Key", "avro-topic-6");
+            io:println("AnydataKey", anydataKey);
+            return sendAvroValuesWithAvroKeys(self, isValueAvro ? anydataValue : value, producerRecord.topic, "avro-topic-6".toBytes(), producerRecord?.partition, producerRecord?.timestamp, 
                 self.getHeaderValueAsByteArrayList(producerRecord?.headers));
         }
         return sendByteArrayValues(self, value, producerRecord.topic, self.getHeaderValueAsByteArrayList(producerRecord?.headers), key,

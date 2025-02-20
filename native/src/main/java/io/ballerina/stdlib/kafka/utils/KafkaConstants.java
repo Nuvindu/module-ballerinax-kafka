@@ -215,11 +215,11 @@ public class KafkaConstants {
     // Default class names
     // Serializers
     public static final String BYTE_ARRAY_SERIALIZER = "org.apache.kafka.common.serialization.ByteArraySerializer";
-    public static final String AVRO_SERIALIZER = "io.confluent.kafka.serializers.KafkaAvroSerializer";
+    public static final String AVRO_SERIALIZER = "SER_AVRO";
 
     // Deserializers
     public static final String BYTE_ARRAY_DESERIALIZER = "org.apache.kafka.common.serialization.ByteArrayDeserializer";
-    public static final String AVRO_DESERIALIZER = "io.confluent.kafka.serializers.KafkaAvroDeserializer";
+    public static final String AVRO_DESERIALIZER = "DES_AVRO";
 
     // Warning suppression
     public static final String UNCHECKED = "unchecked";

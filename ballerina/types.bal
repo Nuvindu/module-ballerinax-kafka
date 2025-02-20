@@ -16,6 +16,7 @@
 
 import ballerinax/confluent.cregistry;
 import ballerinax/confluent.cavroserdes;
+import ballerina/io;
 
 // Consumer-related types
 # Represents the different types of offset-reset methods of the Kafka consumer.
@@ -58,26 +59,38 @@ public type Serializer object {
     public function serialize(string topic, anydata value) returns byte[]|error;
 };
 
-class KafkaAvroSerializer {
+public class KafkaAvroSerializer {
     *Serializer;
     cregistry:Client registry;
     string schema;
 
-    public function init(string schemaRegistryUrl, string schema) returns error? {
-        self.registry = check new({
-            baseUrl: schemaRegistryUrl
-        });
+    public isolated function init(string schemaRegistryUrl, string schema) returns error? {
+        self.registry = check new(
+            baseUrl = "https://psrc-8kz20.us-east-2.aws.confluent.cloud",
+            identityMapCapacity = 1000,
+            originals = {
+                "schema.registry.url": "https://psrc-8kz20.us-east-2.aws.confluent.cloud",
+                "basic.auth.credentials.source": "USER_INFO",
+                "bootstrap.servers": "localhost:9092",
+                "schema.registry.basic.auth.user.info": "MIWUTPVXA5TDX2NI:D4FGQq7Wqucjbg9c5zGMmqY+sN9g0N2cuZKlvHvow59vMGcUZiqnIkiEEEV+Q08o"
+            },
+            headers = {});
         self.schema = schema;
     }
 
-    public function configure(string schemaRegistryUrl) returns error? {
+    public isolated function configure(string schemaRegistryUrl) returns error? {
         self.registry = check new({
             baseUrl: schemaRegistryUrl
         });
     }
 
-    public function serialize(string topic, anydata value) returns byte[]|error {
-        return check cavroserdes:serialize(self.registry, self.schema, value, "new-subject");
+    public isolated function serialize(string topic, anydata value) returns byte[]|error {
+        io:println("Topic", topic);
+        io:println("Schema", self.schema);
+        io:println("Value", value);
+        byte[]|error result = cavroserdes:serialize(self.registry, self.schema, value, "new-subject");
+        io:println("Result", result);
+        return result;
     }
 };
 
@@ -92,17 +105,37 @@ class KafkaAvroDeserializer {
 
     public function init(string schemaRegistryUrl) returns error? {
         self.registry = check new({
-            baseUrl: schemaRegistryUrl
+            baseUrl: schemaRegistryUrl,
+            originals: {
+                "schema.registry.url": schemaRegistryUrl,
+                "basic.auth.credentials.source": "USER_INFO",
+                "bootstrap.servers": "localhost:9092",
+                "schema.registry.basic.auth.user.info": "MIWUTPVXA5TDX2NI:D4FGQq7Wqucjbg9c5zGMmqY+sN9g0N2cuZKlvHvow59vMGcUZiqnIkiEEEV+Q08o"
+            }
         });
     }
 
     public function configure(string schemaRegistryUrl) returns error? {
         self.registry = check new({
-            baseUrl: schemaRegistryUrl
+            baseUrl: schemaRegistryUrl,
+            originals: {
+                "schema.registry.url": schemaRegistryUrl,
+                "basic.auth.credentials.source": "USER_INFO",
+                "bootstrap.servers": "localhost:9092",
+                "schema.registry.basic.auth.user.info": "MIWUTPVXA5TDX2NI:D4FGQq7Wqucjbg9c5zGMmqY+sN9g0N2cuZKlvHvow59vMGcUZiqnIkiEEEV+Q08o"
+            }
         });
     }
 
     public function deserialize(byte[] value) returns anydata|error {
-        return check cavroserdes:deserialize(self.registry, value, anydata);
+        io:println("Deserialize");
+        anydata|error result = cavroserdes:deserialize(self.registry, value, Student);
+        io:println("Result", result);
+        return result;
     }
+};
+
+type Student record {
+    string name;
+    string favorite_color;
 };

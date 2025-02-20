@@ -38,7 +38,9 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.serialization.Serializer;
 
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
@@ -84,16 +86,40 @@ public class ProducerActions {
                     return createKafkaError("configuration enableIdempotence must be set to true to enable " +
                                                             "transactional producer");
                 }
-                createKafkaProducer(producerProperties, producerObject);
+                if (!(producerProperties.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG) instanceof BString)
+                 && !(producerProperties.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG) instanceof BString)) {
+                    Serializer keySerializer = (Serializer) producerProperties.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG);
+                    Serializer valueSerializer =
+                            (Serializer) producerProperties.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG);
+                    createKafkaProducer(producerProperties, producerObject, keySerializer, valueSerializer);
+                } else if (!(producerProperties.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG) instanceof BString)) {
+                    Serializer keySerializer = (Serializer) producerProperties.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG);
+                    createKafkaProducer(producerProperties, producerObject, keySerializer, null);
+                } else if (!(producerProperties.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG) instanceof BString)) {
+                    Serializer valueSerializer =
+                            (Serializer) producerProperties.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG);
+                    createKafkaProducer(producerProperties, producerObject, null, valueSerializer);
+                } else {
+                    createKafkaProducer(producerProperties, producerObject);
+                }
                 KafkaTransactionContext transactionContext = createKafkaTransactionContext(producerObject);
                 producerObject.addNativeData(TRANSACTION_CONTEXT, transactionContext);
             } else {
-                createKafkaProducer(producerProperties, producerObject);
+                if ((producerProperties.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG) instanceof KafkaAvroSerializer keySerializer)
+                        && (producerProperties.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG) instanceof KafkaAvroSerializer valueSerializer)) {
+                    createKafkaProducer(producerProperties, producerObject, keySerializer, valueSerializer);
+                } else if (producerProperties.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG) instanceof KafkaAvroSerializer keySerializer) {
+                    createKafkaProducer(producerProperties, producerObject, keySerializer, null);
+                } else if (producerProperties.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG) instanceof KafkaAvroSerializer valueSerializer) {
+                    createKafkaProducer(producerProperties, producerObject, null, valueSerializer);
+                } else {
+                    createKafkaProducer(producerProperties, producerObject);
+                }
             }
         } catch (IllegalStateException | KafkaException e) {
             KafkaMetricsUtil.reportProducerError(producerObject,
                                                  KafkaObservabilityConstants.ERROR_TYPE_CONNECTION);
-            return createKafkaError("Failed to initialize the producer: " + e.getCause().getMessage());
+            return createKafkaError("Failed to initialize the producer: " + e.getMessage());
         }
         return null;
     }
@@ -104,11 +130,11 @@ public class ProducerActions {
             if (!configs.containsKey(KafkaConstants.PRODUCER_SCHEMA_REGISTRY_URL)) {
                 return createKafkaError("Schema Registry is required for Avro serialization");
             }
-            if (!configs.containsKey(KafkaConstants.PRODUCER_AVRO_SCHEMA)) {
-                return createKafkaError("Schema is required for Avro serialization");
-            }
+//            if (!configs.containsKey((KafkaConstants.PRODUCER_AVRO_SCHEMA).toString())) {
+//                return createKafkaError("Schema is required for Avro serialization");
+//            }
             BString schemaRegistryUrl = (BString) configs.get(KafkaConstants.PRODUCER_SCHEMA_REGISTRY_URL);
-            BString avroSchema = (BString) configs.get(KafkaConstants.PRODUCER_AVRO_SCHEMA);
+            BString avroSchema = StringUtils.fromString("{\"namespace\":\"example.avro.test\",\"type\":\"record\",\"name\":\"testStudent\",\"fields\":[{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"favorite_color\",\"type\":[\"string\",\"null\"]}]}");
             KafkaAvroSerializer serializer;
             try {
                 serializer = new KafkaAvroSerializer(schemaRegistryUrl, avroSchema);
@@ -128,11 +154,11 @@ public class ProducerActions {
             if (!configs.containsKey(KafkaConstants.PRODUCER_SCHEMA_REGISTRY_URL)) {
                 return createKafkaError("Schema Registry is required for Avro serialization");
             }
-            if (!configs.containsKey(KafkaConstants.CONSUMER_AVRO_SCHEMA)) {
-                return createKafkaError("Schema is required for Avro serialization");
-            }
+//            if (!configs.containsKey((KafkaConstants.CONSUMER_AVRO_SCHEMA).toString())) {
+//                return createKafkaError("Schema is required for Avro serialization");
+//            }
             BString schemaRegistryUrl = (BString) configs.get(KafkaConstants.CONSUMER_SCHEMA_REGISTRY_URL);
-            BString avroSchema = (BString) configs.get(KafkaConstants.CONSUMER_AVRO_SCHEMA);
+            BString avroSchema = StringUtils.fromString("{\"namespace\":\"example.avro.test\",\"type\":\"record\",\"name\":\"testStudent\",\"fields\":[{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"favorite_color\",\"type\":[\"string\",\"null\"]}]}");
             KafkaAvroSerializer serializer;
             try {
                 serializer = new KafkaAvroSerializer(schemaRegistryUrl, avroSchema);

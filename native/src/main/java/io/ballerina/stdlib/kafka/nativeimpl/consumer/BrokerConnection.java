@@ -127,7 +127,17 @@ public class BrokerConnection {
             return valueDeserialization;
         }
         try {
-            KafkaConsumer kafkaConsumer = new KafkaConsumer<>(consumerProperties);
+            KafkaConsumer kafkaConsumer;
+            if ((consumerProperties.get(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG) instanceof KafkaAvroDeserializer keyDeserializer)
+                && (consumerProperties.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG) instanceof KafkaAvroDeserializer valueDeserializer)) {
+                kafkaConsumer = new KafkaConsumer<>(consumerProperties, keyDeserializer, valueDeserializer);
+            } else if (consumerProperties.get(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG) instanceof KafkaAvroDeserializer keyDeserializer) {
+                kafkaConsumer = new KafkaConsumer<>(consumerProperties, keyDeserializer, null);
+            } else if (consumerProperties.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG) instanceof KafkaAvroDeserializer valueDeserializer) {
+                kafkaConsumer = new KafkaConsumer<>(consumerProperties, null, valueDeserializer);
+            } else {
+                kafkaConsumer = new KafkaConsumer<>(consumerProperties);
+            }
             consumerObject.addNativeData(NATIVE_CONSUMER, kafkaConsumer);
             consumerObject.addNativeData(NATIVE_CONSUMER_CONFIG, consumerProperties);
             consumerObject.addNativeData(BOOTSTRAP_SERVERS, consumerProperties.getProperty(BOOTSTRAP_SERVERS));

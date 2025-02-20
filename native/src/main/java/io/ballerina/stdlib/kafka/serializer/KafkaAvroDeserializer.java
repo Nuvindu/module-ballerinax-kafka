@@ -18,11 +18,15 @@
 
 package io.ballerina.stdlib.kafka.serializer;
 
+import io.ballerina.runtime.api.creators.TypeCreator;
 import io.ballerina.runtime.api.creators.ValueCreator;
+import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.values.BArray;
 import io.ballerina.runtime.api.values.BError;
+import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
+import io.ballerina.runtime.api.values.BTypedesc;
 import io.ballerina.stdlib.kafka.utils.ModuleUtils;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -33,10 +37,11 @@ import static io.ballerina.stdlib.kafka.utils.KafkaUtils.createKafkaError;
 
 public class KafkaAvroDeserializer implements Deserializer<Object> {
     BObject deserializer = null;
+
     public KafkaAvroDeserializer(BString schemaRegistryUrl) throws BError {
         try {
             this.deserializer = (schemaRegistryUrl != null) ? ValueCreator.createObjectValue(ModuleUtils.getModule(),
-                    "Deserializer", schemaRegistryUrl) : null;
+                    "KafkaAvroDeserializer", schemaRegistryUrl) : null;
         } catch (Exception e) {
             this.deserializer = null;
         }
